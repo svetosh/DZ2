@@ -558,6 +558,5 @@ int main(int argc, char** argv) {
 		cout << endl;
 	}
 	match_done();
-	system("pause");
 	return 0;
 }
