@@ -1,4 +1,5 @@
-﻿#include <stdlib.h>
+#include "pch.h"
+#include <stdlib.h>
 #include <iostream>
 #include <cstdlib>
 #include <conio.h>
@@ -8,16 +9,16 @@
 #include <stack>
 #include <vector>
 #include <algorithm>
-#include "match.h"
+#include "match.hpp"
 
 using namespace std;
 
-extern char *ch = NULL; //указатель на разбираемую строку
-extern char *nexch = NULL; //тот же указатель только смотрит на символ вперед
-map<string, float> var; //для учета переменной
-string res = ""; //результат разбора
+extern char *ch = nullptr; 
+extern char *nexch = nullptr; 
+map<string, float> var; 
+string res = ""; 
+bool gminus = false;
 
-//функция для работы с рекурсивно-нисходящим анализатором
 int first_value(int& val, int& minus);
 int number_int(int& val);
 int number_float(float& val);
@@ -29,24 +30,28 @@ int mult();
 int add();
 float calc(vector<string> s);
 
-//разделяем строку по пробелу
-vector<string> razdel(string st) {
+vector<string> razdel(string st) 
+{
 	vector<string> vec;
 	string r = "";
-	for (int i = 0; i < st.size(); i++) {
-		if (st[i] == ' ' && r.size() > 0) {
+	for (int i = 0; i < st.size(); i++) 
+	{
+		if (st[i] == ' ' && r.size() > 0) 
+		{
 			vec.push_back(r);
 			r = "";
 		}
-		//пропускаем функции (их будем разбирать отдельно)
-		else if (st[i] == '[') {
-			int j = 1; //учитываем также вложенные функции
-			while (st[i] != ']' || j > 1) {
-				if (st[i] == '[') {
+		else if (st[i] == '[') 
+		{
+			int j = 1; 
+			while (st[i] != ']' || j > 1) 
+			{
+				if (st[i] == '[') 
+				{
 					j++;
 				}
-				//смотрим на 1 символ вперед
-				else if ((st[i+1] == ']') && ((i+1) < st.size())) {
+				else if ((st[i + 1] == ']') && ((i + 1) < st.size())) 
+				{
 					j--;
 				}
 				r += st[i];
@@ -56,217 +61,257 @@ vector<string> razdel(string st) {
 			vec.push_back(r);
 			r = "";
 		}
-		else if(st[i] != ' '){ //если отличный от скобки и пробела символ
+		else if (st[i] != ' ') 
+		{ 
 			r += st[i];
 		}
 	}
-	//если ещё что-то осталось
-	if (r.size() > 0) {
+	if (r.size() > 0) 
+	{
 		vec.push_back(r);
 	}
 	return vec;
 }
 
-//открываем внешние скобки функции поскольку могут быть функции вида tg(tg(...(x)...)
-float open(string s) {
+float open(string s) 
+{
 	string next = "";
-	if (s[s.size() - 1] == ']') {
-		string name = ""; //пишем сюда название функции
-		s.pop_back(); //убираем скобку
-		while (s[s.size()-1] != ' ') {
+	if (s[s.size() - 1] == ']') 
+	{
+		string name = "";
+		s.pop_back();
+		while (s[s.size() - 1] != ' ') 
+		{
 			name += s[s.size() - 1];
 			s.pop_back();
 		}
-		reverse(name.begin(), name.end()); //переворачиваем так как мы писали с конца
-		//теперь смотрим что это за функция
-		if (name == "cos") {
-			//читаем все содержимое функции
-			for (int i = 1; i < s.size() - 1; i++) {
+		reverse(name.begin(), name.end());
+		if (name == "cos") 
+		{
+			for (int i = 1; i < s.size() - 1; i++) 
+			{
 				next += s[i];
 			}
-			return cos(calc(razdel(next))); //вычисляем
+			return cos(calc(razdel(next)));
 		}
-		else if (name == "sin") {
-			for (int i = 1; i < s.size() - 1; i++) {
+		else if (name == "sin") 
+		{
+			for (int i = 1; i < s.size() - 1; i++) 
+			{
 				next += s[i];
 			}
 			return sin(calc(razdel(next)));
 		}
-		else if (name == "tg") {
-			for (int i = 1; i < s.size() - 1; i++) {
+		else if (name == "tg")
+		{
+			for (int i = 1; i < s.size() - 1; i++) 
+			{
 				next += s[i];
 			}
 			return tan(calc(razdel(next)));
 		}
-		else if (name == "ctg") {
-			for (int i = 1; i < s.size() - 1; i++) {
+		else if (name == "ctg") 
+		{
+			for (int i = 1; i < s.size() - 1; i++)
+			{
 				next += s[i];
 			}
-			return 1.0/tan(calc(razdel(next)));
+			return 1.0 / tan(calc(razdel(next)));
 		}
-		else if (name == "sqrt") {
-			for (int i = 1; i < s.size() - 1; i++) {
+		else if (name == "sqrt")
+		{
+			for (int i = 1; i < s.size() - 1; i++)
+			{
 				next += s[i];
 			}
 			return sqrt(calc(razdel(next)));
 		}
-		else if (name == "exp") {
-			for (int i = 1; i < s.size() - 1; i++) {
+		else if (name == "exp")
+		{
+			for (int i = 1; i < s.size() - 1; i++)
+			{
 				next += s[i];
 			}
 			return exp(calc(razdel(next)));
 		}
-		else if (name.find("pow") != string::npos){ //учет степени
-			for (int i = 1; i < s.size() - 1; i++) {
+		else if (name.find("pow") != string::npos)
+		{ 
+			for (int i = 1; i < s.size() - 1; i++)
+			{
 				next += s[i];
 			}
-			string p = ""; //степень
-			for (int i = 0; i < name.size() && name[i] != '_'; i++) {
+			string p = "";
+			for (int i = 0; i < name.size() && name[i] != '_'; i++) 
+			{
 				p += name[i];
 			}
-			return pow(calc(razdel(next)),atoi(p.c_str()));
+			return pow(calc(razdel(next)), atoi(p.c_str()));
 		}
 	}
 }
 
-//расчет постфиксного выражения
-float calc(vector<string> s) {
-	stack<float> x; //стек для расчета
-	for (auto i : s) {
-		//может быть как цифра, а может и символ ариф. операции
-		if (i.size() == 1) {
-			if (isdigit(i[0])) {
+float calc(vector<string> s) 
+{
+	stack<float> x;
+	for (auto i : s)
+	{
+		if (i.size() == 1) 
+		{
+			if (isdigit(i[0])) 
+			{
 				x.push(atof(i.c_str()));
 			}
-			else {
-				//скорее всего знак операции
+			else 
+			{
 				char c = i[0];
-				//разбор по знаку
-				switch (c) {
-				case '+': {
-					float a = x.top(); x.pop(); //снимаем два верхних числа со стека
-					float b = x.top(); x.pop();
-					x.push(a + b); //записываем результат
-					break;
-				}
-				case '-': {
-					float a = x.top(); x.pop();
-					float b = x.top(); x.pop();
-					x.push(b - a);
-					break;
-				}
-				case '*': {
-					float a = x.top(); x.pop();
-					float b = x.top(); x.pop();
-					x.push(a * b);
-					break;
-				}
-				case '/': {
-					float a = x.top(); x.pop();
-					float b = x.top(); x.pop();
-					if (abs(a) != 0) {
-						x.push(b / a);
-					}
-					else {
-						cerror("Ошибка при выполнении операции!");
+				switch (c) 
+				{
+					case '+': 
+					{
+						float a = x.top(); x.pop(); 
+						float b = x.top(); x.pop();
+						x.push(a + b); 
 						break;
 					}
-					break;
-				}
+					case '-': 
+					{
+						float a = x.top(); x.pop();
+						float b = x.top(); x.pop();
+						x.push(b - a);
+						break;
+					}
+					case '*': 
+					{
+						float a = x.top(); x.pop();
+						float b = x.top(); x.pop();
+						x.push(a * b);
+						break;
+					}
+					case '/': 
+					{
+						float a = x.top(); x.pop();
+						float b = x.top(); x.pop();
+						if (abs(a) != 0) 
+						{
+							x.push(b / a);
+						}
+						else 
+						{
+							cerror("Ошибка при выполнении операции!");
+							break;
+						}
+						break;
+					}
 				}
 			}
 		}
-		else {
-			//начало функции
-			if (i[0] == '[') {
-				//сначала опеределяем что это за функция после чего разбиваем её
+		else 
+		{
+			if (i[0] == '[') 
+			{
 				x.push(open(i));
 			}
-			else if (i[0] == '-' && i[1] == '[') {
+			else if (i[0] == '-' && i[1] == '[')
+			{
 				string w(i);
-				w.erase(w.begin()); //убираем из разбора унарный минус
+				w.erase(w.begin());
 				x.push(-open(w));
 			}
-			else {
-				//начало числа
-				if (isdigit(i[0]) || (isdigit(i[1]) && i[0] == '-')) {
+			else 
+			{
+				if (isdigit(i[0]) || (isdigit(i[1]) && i[0] == '-')) 
+				{
 					x.push(atof(i.c_str()));
 				}
-				else {
-					//непонятно что
+				else 
+				{
 					cerror("Ошибка при разборе выражения!");
 					break;
 				}
 			}
 		}
 	}
-	if (x.size() != 1) {
+	if (x.size() != 1) 
+	{
 		cerror("В стеке находится больше чем одно значение!");
 		return -1;
 	}
-	else {
+	else 
+	{
 		return x.top();
 	}
 }
 
-//попалась константа pi или e - exp(1)
-int constant(float& val) {
+int constant(float& val) 
+{
 	char* str = ch;
 	char* next = nexch;
 	int minus = 1;
-	//учет унарных знаков
-	if (match("-")) {
+	if (match("-")) 
+	{
 		minus = -minus;
 	}
-	if (match("+")) {
+	if (match("+")) 
+	{
 		minus = minus;
 	}
-	if (match("pi")) {
+	if (match("pi"))
+	{
 		val = 3.1415926 * minus;
 		return 1;
 	}
-	else if (*ch == 'e' && *nexch != 'x') {
-		ch++; //нужно сместить тк не используем функцию match
+	else if (*ch == 'e' && *nexch != 'x')
+	{
+		ch++;
 		nexch++;
 		val = exp(1) * minus;
 		return 1;
 	}
-	ch = str; //чтобы не съедать унарный знак если он там будет
+	ch = str;
 	next = nexch;
 	return 0;
 }
 
-//разбор переменной
-int variable() {
+int variable()
+{
 	int minus = 1;
-	//учет унарных знаков
-	if (match("-")) {
+	if (match("-")) 
+	{
 		minus = -1;
 	}
-	if (match("+")) {
+	if (match("+")) 
+	{
 		minus = 1;
 	}
 	char* str = ch;
 	char* next = nexch;
 	string name = "";
-	while (alpha(*str)) {
+	while (alpha(*str)) 
+	{
 		name += *str++;
 	}
-	if (*str == '(') {
+	if (name == " " || name.size() == 0)
+	{
+		return 0;
+	}
+	if (*str == '(') 
+	{
 		if (name == "exp" || name == "pow" || name == "sin" ||
-			name == "cos" || name == "tg" || name == "ctg" || name == "sqrt") {
+			name == "cos" || name == "tg" || name == "ctg" || name == "sqrt") 
+		{
 			return 0;
 		}
 	}
 	else {
-		ch = str; //обновляем указатели
+		ch = str;
 		nexch = next;
-		//скорее всего переменная
-		if (var.find(name) != var.end()) { //уже встречалась ранее?
+		if (var.find(name) != var.end())
+		{ 
 			res += to_string(var[name]);
 			res += " ";
 		}
-		else { //встретилась в первый раз
+		else
+		{ 
 			cout << "Введите значение переменной " << name << ": ";
 			var[name] = 0;
 			cin >> var[name];
@@ -278,73 +323,115 @@ int variable() {
 	}
 }
 
-//разбор функций
-int func() {
+int func() 
+{
 	char* str = ch;
 	char* next = nexch;
 	int minus = 1;
-	//учет унарных знаков
-	if (match("-")) {
+	if (match("-")) 
+	{
 		minus = -1;
 	}
-	if (match("+")) {
+	if (match("+"))
+	{
 		minus = 1;
 	}
-	if (match("exp")) {
+	if (match("exp"))
+	{
+		if (*ch != '(')
+		{
+			return 0;
+		}
 		if (minus < 0)
 			res += '-';
 		res += "[";
-		if (expr() == 0) {
+		if (expr() == 0)
+		{
 			return 0;
 		}
 		res += "exp] ";
 	}
-	else if (match("sqrt")) {
+	else if (match("sqrt"))
+	{
+		if (*ch != '(')
+		{
+			return 0;
+		}
 		if (minus < 0)
 			res += '-';
 		res += "[";
-		if (expr() == 0) {
+		if (expr() == 0)
+		{
 			return 0;
 		}
 		res += "sqrt] ";
 	}
-	else if (match("sin")) {
+	else if (match("sin"))
+	{
+		if (*ch != '(')
+		{
+			return 0;
+		}
 		if (minus < 0)
 			res += '-';
 		res += "[";
-		if (expr() == 0) {
+		if (expr() == 0)
+		{
 			return 0;
 		}
 		res += "sin] ";
 	}
-	else if (match("cos")) {
+	else if (match("cos")) 
+	{
+		if (*ch != '(')
+		{
+			return 0;
+		}
 		if (minus < 0)
 			res += '-';
 		res += "[";
-		if (expr() == 0) {
+		if (expr() == 0)
+		{
 			return 0;
 		}
 		res += "cos] ";
 	}
-	else if (match("tg")) {
+	else if (match("tg"))
+	{
+		if (*ch != '(')
+		{
+			return 0;
+		}
 		if (minus < 0)
 			res += '-';
 		res += "[";
-		if (expr() == 0) {
+		if (expr() == 0)
+		{
 			return 0;
 		}
 		res += "tg] ";
 	}
-	else if (match("ctg")) {
+	else if (match("ctg"))
+	{
+		if (*ch != '(')
+		{
+			return 0;
+		}
 		if (minus < 0)
 			res += '-';
 		res += "[";
-		if (expr() == 0) {
+		if (expr() == 0)
+		{
 			return 0;
 		}
 		res += "ctg] ";
 	}
-	else if (match("pow")) {
+	else if (match("pow"))
+	{
+		if (*ch != '(')
+		{
+			return 0;
+		}
 		if (minus < 0)
 			res += '-';
 		res += "[";
@@ -352,211 +439,270 @@ int func() {
 			return 0;
 		res += "pow] ";
 	}
-	else { //если это не функция
-		ch = str; //опять же, чтобы не есть унарный знак
+	else
+    { 
+		ch = str;
 		nexch = next;
 		return 0;
 	}
 	skipblanks();
-	return 1; //если это все таки функция
+	return 1;
 }
 
-//разбор числа
-int first_value(int& val, int& minus) {
+int first_value(int& val, int& minus)
+{
 	int k = 1;
 	char c = '\0';
-	//проверка унарного знака
-	while (k) {
+	while (k)
+	{
 		k = 0;
-		if (match("+")) 
+		if (match("+"))
 			k = 1;
-		if (match("-")) {
-			minus = (-minus);
+		if (match("-"))
+		{
+			minus = -1;
 			k = 1;
 		}
 	}
 	if (numeric(*ch) == 0)
-		return false; //если не число
-	while (numeric(*ch)) { //число оказалось больше одного разряда
-		c = get_ch(); //получаем след символ
+		return false;
+	while (numeric(*ch))
+	{ 
+		c = get_ch();
 		k = k * 10 + (c - '0');
 	}
 	val = k;
 	return true;
 }
 
-// проверка на целое число
-int number_int(int& val) {
-	char* str = ch; //для сброса глобального указателя
+int number_int(int& val)
+{
+	char* str = ch;
 	char* next = nexch;
 	int minus = 1;
-	bool res = first_value(val, minus); //получаем первое число
-	if (res) {
-		if (minus < 0) val = -val;
-		if (match(".")) { //число с плавующей точкой попалось
-			ch = str; //сброс
+	bool res = first_value(val, minus);
+	if (res) 
+	{
+		if (minus < 0)
+		{
+			val = -val;
+		}
+		if (match("."))
+		{ 
+			ch = str;
 			nexch = next;
 			return 0;
 		}
 		else
 			return 1;
 	}
-	else {
-		ch = str; //также сброс если не число
+	else 
+	{
+		ch = str;
 		nexch = next;
 	}
 	return 0;
 }
 
-// проверка на вещественное число
-int number_float(float& val) {
+int number_float(float& val)
+{
 	char* str = ch;
 	char* next = nexch;
 	int minus = 1;
-	int d = 0; //целая часть
-	int m = 0; //дробная
-	int l = 0; //длина дробной части
+	int d = 0; 
+	int m = 0; 
+	int l = 0; 
 	char c = '\0';
 	bool res = first_value(d, minus);
-	if (res) {
-		//если число
-		if (minus < 0) val = -val;
-		//разбор дробной части
+	if (res) 
+	{
+		if (minus < 0) 
+		{
+			val = -val;
+		}
 		if (match(".")) {
-			while (numeric(*ch)) {
+			while (numeric(*ch)) 
+			{
 				c = get_ch();
 				m = m * 10 + (c - '0');
 				l++;
 			}
 		}
+		if (match(".")) 
+		{
+			return 0;
+		}
 		val = (float)d + (float)m / pow(10, l);
 		return 1;
 	}
-	else { //попалось не число
-		ch = str; //сброс
+	else
+	{
+		ch = str;
 		nexch = next;
 		return 0;
 	}
 }
 
-//разбор выражения в скобках
-int expr() {
+int expr() 
+{
 	int s = 0;
 	float f = 0.0f;
-	//дальше скобочное выражение?
-	if (match("(")) {
+
+	if (*ch == '-' && *nexch == '(')
+	{
+		ch++;
+		nexch++;
+		gminus = !gminus;
+	}
+
+	if (match("(")) 
+	{
 		if (add() == 0)
 			return 0;
-		//если это pow функция, то разбираем
-		if (match(",")) {
-			//степень
-			if (number_int(s)) {
+		if (match(",")) 
+		{
+			if (number_int(s)) 
+			{
 				res += to_string(s);
 				res += "_";
 			}
-			else {
+			else 
+			{
 				cerror("syntax error");
 				return 0;
 			}
 		}
-		if (!match(")")) {
+		if (!match(")"))
+		{
 			cerror("mismatch ')'");
 			return 0;
 		}
+		if (gminus)
+		{
+			res += "-1 * ";
+			gminus = !gminus;
+		}
 	}
-	else if (number_int(s)) { //целое число
+	else if (number_int(s))
+	{
 		res += to_string(s);
 		res += " ";
 	}
-	else if (number_float(f)) { //вещественное
+	else if (number_float(f))
+	{ 
 		res += to_string(f);
 		res += " ";
 	}
-	else if (constant(f)) { //константа
+	else if (constant(f))
+	{ 
 		res += to_string(f);
 		res += " ";
 	}
-	else if (func()) { //функция
+	else if (func())
+	{ 
 		return 1;
 	}
-	else if (variable()) { //переменная
+	else if (variable())
+	{ 
 		return 1;
 	}
-	else { //если непонятно что
+	else
+	{ 
 		cerror("syntax error");
 		return 0;
 	}
 	return 1;
 }
 
-//разбор умножения и деления
-int mult() {
-	//левый множитель
+int mult()
+{
 	if (expr() == 0)
 		return 0;
-	while (true) {
-		if (match("*")) {
-			//получаем правый множитель
+	if (match("(")) 
+	{
+		return 0;
+	}
+	bool check = true;
+	do
+	{
+		if (match("*"))
+		{
 			if (expr() == 0)
 				return 0;
-			res += "* "; //умножаем
+			res += "* ";
 		}
-		else if (match("/")) {
+		else if (match("/"))
+		{
 			if (expr() == 0)
 				return 0;
 			res += "/ ";
 		}
-		else break;
+		else
+		{
+			check = false;
+		}
 	}
+	while (check);
 	return 1;
 }
 
-//разбор сложения и вычитания
-int add() {
-	//аналогично как и с умножением
+int add() 
+{
 	if (mult() == 0)
 		return 0;
-	while (true) {
-		if (match("+")) {
+	if (match("("))
+	{
+		return 0;
+	}
+	bool check = false;
+	do {
+		if (match("+")) 
+		{
 			if (mult() == 0)
 				return 0;
 			res += "+ ";
 		}
-		else if (match("-")) {
+		else if (match("-")) 
+		{
 			if (mult() == 0)
 				return 0;
 			res += "- ";
 		}
-		else break;
-	}
+		else 
+		{
+			check = false;
+		}
+	} while (check);
 	return 1;
 }
 
-//основная программа
-int main(int argc, char** argv) {
+int main(int argc, char** argv)
+{
 	setlocale(LC_ALL, "RUS");
-	char str[200];
-	while (true) {
+	string str;
+	do 
+	{
 		cout << "Введите выражение -> ";
-		if (var.size() > 0) {
+		if (var.size() > 0) 
+		{
 			while (getchar() != '\n');
-			var.clear(); //каждый новый запуск будет новое окружение переменных
+			var.clear();
 		}
-		cin.getline(str, 200);
-		if (strcmp(str, "end") == 0) { //для остановки разбора выражений
-			break;
+		getline(cin, str);
+		if (str != "end")
+		{ 
+			match_init(const_cast<char*>(str.data()));
+			res = "";
+			if (add())
+			{
+				cout << "Постфиксная запись: " << res << endl;
+				cout << "Результат расчета: " << calc(razdel(res)) << endl;
+			}
+			else
+				cout << endl << "FAIL" << endl;
 		}
-		match_init(str);
-		res = "";
-		//функция возвращает 1 если не было критических ошибок и 0 в противном случае
-		if (add()) {
-			cout <<"Постфиксная запись: " << res << endl;
-			cout <<"Результат расчета: " << calc(razdel(res)) << endl;
-		}
-		else 
-			cout << endl << "FAIL" << endl;
 		cout << endl;
-	}
+	} while (str != "end");
 	match_done();
 	return 0;
 }
